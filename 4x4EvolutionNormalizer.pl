@@ -54,8 +54,8 @@ for my $event ( 'Private Message', 'Private Message to Dialog' ) {
 }
 
 sub eventPrivateMessage {
-	my ( $data, $event )       = @_;
-	my ( $nick, $what ) = @$data;
+	my ( $data, $event ) = @_;
+	my ( $nick, $what )  = @$data;
 
 	my $network = get_info('network');
 	my $channel = get_info('channel');
@@ -164,6 +164,18 @@ hook_print( 'Part', sub {
 	return EAT_NONE;
 });
 
+hook_print( 'Quit', sub {
+	my ( $nick, $reason, $host ) = @{ $_[0] };
+
+	my $network = get_info('network');
+
+	if ( exists $nnr{$network}->{$nick} ) {
+		my $realname = ( split( /\^0|\^1/, $nnr{$network}->{$nick} ) )[0];
+		emit_print( 'Quit', $realname, $reason, $host );
+		return EAT_XCHAT;
+	}
+	return EAT_NONE;
+});
 
 hook_print( 'You Join', sub {
 	my ( $me, $channel, $host ) = @{ $_[0] };
