@@ -151,6 +151,19 @@ hook_server( 'RCHG', sub {
 });
 
 
+#Delete a network from the hash when a Server context is closed
+hook_print( 'Close_Context', sub {
+	my $network  = context_info->{network};
+
+	#Proceed if it is a server context and from out list of networks
+	if ( context_info->{type} == '1' and
+         grep { lc($_) eq lc($network) } @networkNames) {
+
+		delete $nnr{ $network } if exists $nnr{ $network };
+	}
+	return EAT_NONE;
+});
+
 hook_print( 'Part', sub {
 	my ( $nick, $host, $channel ) = @{ $_[0] };
 
@@ -179,7 +192,37 @@ hook_print( 'Quit', sub {
 
 hook_print( 'You Join', sub {
 	my ( $me, $channel, $host ) = @{ $_[0] };
-	whoGet( get_info('network'), $channel );
+	my $network = get_info('network');
+
+	#This is the order of the commands the client sends when it joins a channel
+	#Taken directly from the irc.log file
+	#
+	# IN  | :aServer.com 366 NICK #EvoR :End of /NAMES list.
+	# OUT | RCHG :nightfrog^0
+	# OUT | PRIVMSG #EvoR :^STATUS nightfrog^0
+	# OUT | TOPIC #EvoR
+	# OUT | WHO #EvoR
+	#
+	#We need to detect the end of /names and then what we need to do.
+	#Let's do this....
+
+	my $namesEnd;
+	$namesEnd = hook_server('366', sub {
+					if ( lc($_[0][3]) eq lc($channel) ){
+						
+						# We will who the channel in a little bit and add our realname
+						# to the hash then so for now use get_prefs() for our realname
+						command( 'QUOTE RCHG :' . get_prefs( 'irc_real_name' ) );
+						command( 'QUOTE PRIVMSG ' . $channel . ':^STATUS ' . get_prefs( 'irc_real_name' ) );
+
+						# Just an example if we were follow the order but XChat does this already
+						# and we don't give a shit when we get the topic.
+						# command( 'TOPIC ' . $channel ); 
+
+						whoGet( $network, $channel );
+                    }
+                    unhook($namesEnd);
+                });
 	return EAT_NONE;
 });
 
