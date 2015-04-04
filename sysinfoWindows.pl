@@ -123,7 +123,7 @@ sub conv {
 				for my $v (Win32::OLE::in $wmi->InstancesOf('Win32_VideoController')){
 					my $name = $v->{name};
 					my $vRam = $v->{AdapterRam};
-	prnt $vRam;
+
 					# negative to positive
 					$vRam = neg2pos($vRam) if $vRam < 0;
 		
@@ -188,7 +188,6 @@ sub conv {
 		nspeed =>
 			sub{
 				for my $v  (Win32::OLE::in $wmi->InstancesOf('Win32_PerfRawData_Tcpip_NetworkInterface')){
-						#prnt $v->{CurrentBandwidth};
 						return $v->{BytesReceivedPerSec};
 				}
 			},
