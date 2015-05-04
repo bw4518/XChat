@@ -19,16 +19,15 @@
 # DONE 4: USRIP to generate NICK-PORT
 #      5: This is a big one... Connect in the sequence the game connects.
 #         Usually this requires a source code edit
-#      6: Break this script up into separate files for each event
 #########################################################################################
 
 use strict;
 use warnings;
 use IO::Socket;
-use Xchat qw(:all);
+use Xchat qw( :all );
 
 #Add the network(s) this script should work with
-my @netNames = qw( fuzzy personal );
+my @netNames = qw( fuzzy personal dc-talk );
 
 # Make a hash for the the nicks and realnames global yet not global
 # Eventually make this an object with accessors
@@ -86,7 +85,8 @@ my @netNames = qw( fuzzy personal );
         return;
     }
 
-    sub listGet {
+    sub listGet
+    {
         return \%list;
     }
 }
@@ -97,17 +97,20 @@ init0();
 
 sub init0
 {
-
     # Remember this context for later
     my $context = get_info( 'context' );
 
+    my $tabType;
+    my $tabNetwork;
+    my $tabName;
+    my $tabContext;
+
     for my $tab ( get_list( 'channels' ) )
     {
-
-        my $tabType    = $tab->{type};
-        my $tabNetwork = $tab->{network};
-        my $tabName    = $tab->{channel};
-        my $tabContext = $tab->{context};
+        $tabType    = $tab->{ type };
+        $tabNetwork = $tab->{ network };
+        $tabName    = $tab->{ channel };
+        $tabContext = $tab->{ context };
 
         if ( $tabType == 2 and grep { lc( $_ ) eq lc( $tabNetwork ) } @netNames )
         {
@@ -117,7 +120,7 @@ sub init0
     }
 
     # Go back to the original window
-    set_context($context);
+    set_context( $context );
 }
 
 
@@ -147,6 +150,8 @@ for my $event ( 'Channel DeOp',
     hook_print( $event, \&eventChannelMode, { 'data' => $event } );
 }
 
+
+# Channel messages
 sub eventChannelMessage
 {
     my ( $data, $event ) = @_;
@@ -155,7 +160,8 @@ sub eventChannelMessage
     my $network = get_info( 'network' );
     my $channel = get_info( 'channel' );
 
-    if ( grep { lc( $_ ) eq lc( $network ) } @netNames ) {
+    if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
+    {
         my %nnr = %{ listGet() };
 
         #That dirty little message the client sends when it joins a channel
@@ -183,6 +189,8 @@ sub eventChannelMessage
     return EAT_NONE;
 }
 
+
+# Private messages
 sub eventPrivateMessage
 {
     my ( $data, $event ) = @_;
@@ -191,13 +199,14 @@ sub eventPrivateMessage
     my $network = get_info( 'network' );
     my $channel = get_info( 'channel' );
 
-    if ( grep { lc( $_ ) eq lc( $network ) } @netNames ) {
-
+    if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
+    {
         my %nnr = %{ listGet() };
 
         #If the NICK has not been pushed into the list then
         #it needs to be done and hopefully before the emit.
-        if ( not exists $nnr{ $network }->{ $nick } ) {
+        if ( not exists $nnr{ $network }->{ $nick } )
+        {
             whoGet( $network, $nick );
         }
         elsif ( exists $nnr{ $network }->{ $nick } )
@@ -206,13 +215,12 @@ sub eventPrivateMessage
             emit_print( $event, $realname, $what );
             return EAT_XCHAT;
         }
-
     }
     return EAT_NONE;
 }
 
-# Opers can use this to communicate without others seeing
-# So you can do channel notices and noone will see in game.
+
+# Notices
 sub eventNotice
 {
     my ( $data, $event ) = @_;
@@ -237,9 +245,12 @@ sub eventNotice
     }
 }
 
-sub eventChannelMode {
+
+# Channel modes
+sub eventChannelMode
+{
     my ( $data, $event ) = @_;
-    my ( $by,   $to )    = @$data;
+    my ( $by, $to )      = @$data;
 
     my $network = get_info( 'network' );
 
@@ -253,7 +264,8 @@ sub eventChannelMode {
             whoGet( $network, $by );
         }
         
-        if ( not exists $nnr{ $network }->{ $to } ) {
+        if ( not exists $nnr{ $network }->{ $to } )
+        {
             whoGet( $network, $to );
         }
         elsif ( exists $nnr{ $network }->{ $by } and exists $nnr{ $network }->{ $to } )
@@ -269,7 +281,7 @@ sub eventChannelMode {
 
 #Add or change a user when the /RCHG command is executed
 hook_server( 'RCHG', sub
-{
+    {
         my $nick     = substr( $_[0][0], 1 );
         my $realname = substr( $_[1][2], 1 );
         my $network  = get_info( 'network' );
@@ -282,15 +294,14 @@ hook_server( 'RCHG', sub
             {
                 $nnr{ $network }->{ $nick } = $realname;
             }
-            elsif ( exists $nnr{ $network }->{ $nick } ) {
-
+            elsif ( exists $nnr{ $network }->{ $nick } )
+            {
                 my $me = user_info();
 
                 #Only need to see when the actual realname changes
                 #and not the lap count and other shit in the realnames
                 my $nameNew = ( split( /\^0|\^1/, $realname ) )[0];
-                my $nameOld =
-                  ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
+                my $nameOld = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
 
                 #Them
                 if ( lc( $nameNew ) ne lc( $nameOld ) and $me->{ nick } eq $nick )
@@ -312,20 +323,19 @@ hook_server( 'RCHG', sub
 );
 
 #Delete a network from the hash when a Server context is closed
-hook_print( 'Close_Context',
-    sub
+hook_print( 'Close_Context', sub
     {
         my $network = context_info->{network};
         
         if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
         {
-            
-            my %nnr     = %{ listGet() };
+            my %nnr = %{ listGet() };
 
             #Proceed if it is a server context and from out list of networks
-            if ( context_info->{type} == '1'
-                 and exists $nnr{$network}
-                 and grep { lc($_) eq lc($network) } @netNames )
+            if ( context_info->{ type } == '1'
+                 and exists $nnr{ $network }
+                 and grep { lc( $_ ) eq lc( $network ) } @netNames
+               )
             {
                 delete $nnr{ $network };
             }
@@ -335,8 +345,7 @@ hook_print( 'Close_Context',
 );
 
 #EAT the event since we handle it in the channel messages
-hook_print( 'Join',
-    sub
+hook_print( 'Join', sub
     {
         my ( $nick, $channel, $host ) = @{ $_[0] };
 
@@ -347,14 +356,12 @@ hook_print( 'Join',
            )
         {
             return EAT_XCHAT;
-        }
-        
+        }  
         return EAT_NONE;
     }
 );
 
-hook_print( 'Part',
-    sub
+hook_print( 'Part', sub
     {
         my ( $nick, $host, $channel ) = @{ $_[0] };
 
@@ -363,7 +370,6 @@ hook_print( 'Part',
         if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
         {
             my %nnr = %{ listGet() };
-            
             if ( exists $nnr{ $network }->{ $nick } )
             {
                 my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
@@ -372,13 +378,11 @@ hook_print( 'Part',
                 return EAT_XCHAT;
             }
         }
-
         return EAT_NONE;
     }
 );
 
-hook_print( 'Quit',
-    sub
+hook_print( 'Quit', sub
     {
         my ( $nick, $reason, $host ) = @{ $_[0] };
 
@@ -387,46 +391,41 @@ hook_print( 'Quit',
         if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
         {
             my %nnr = %{ listGet() };
-
             if ( exists $nnr{ $network }->{ $nick } ) 
             {
-                my $realname =
-                  ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
+                my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
                 emit_print( 'Quit', $realname, $reason, $host );
                 delete $nnr{ $network }->{ $nick };
                 return EAT_XCHAT;
             }
         }
-        
         return EAT_NONE;
     }
 );
 
-hook_print( 'You Join',
-    sub
+hook_print( 'You Join', sub
     {
         my ( $me, $channel, $host ) = @{ $_[0] };
         my $network = get_info( 'network' );
 
-        #This is the order of the commands the client sends when it joins a channel
-        #Taken directly from the irc.log file
+        # This is the order of the commands the client sends when it joins a channel
+        # Taken directly from the irc.log file
         #
-        # IN  | :aServer.com 366 NICK #EvoR :End of /NAMES list.
-        # OUT | RCHG :nightfrog^0
-        # OUT | PRIVMSG #EvoR :^STATUS nightfrog^0
-        # OUT | TOPIC #EvoR
-        # OUT | WHO #EvoR
+        #  IN  | :aServer.com 366 NICK #EvoR :End of /NAMES list.
+        #  OUT | RCHG :nightfrog^0
+        #  OUT | PRIVMSG #EvoR :^STATUS nightfrog^0
+        #  OUT | TOPIC #EvoR
+        #  OUT | WHO #EvoR
         #
-        #We need to detect the end of /names and then what we need to do.
-        #Let's do this....
+        # We need to detect the end of /names and then what we need to do.
+        # Let's do this....
 
         if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
         {
             my %nnr = %{ listGet() };
  
             my $namesEnd;
-            $namesEnd = hook_server( '366',
-                sub
+            $namesEnd = hook_server( '366', sub
                 {
                     if ( lc( $_[0][3] ) eq lc($channel) )
                     {
@@ -441,33 +440,31 @@ hook_print( 'You Join',
                         # command( 'TOPIC ' . $channel );
 
                         whoGet( $network, $channel );
-                    }
-                    
-                    unhook($namesEnd);
+                    }  
+                    unhook( $namesEnd );
                 }
             );
         }
-        
         return EAT_NONE;
     }
 );
 
-hook_print( 'Your Message',
-    sub
+hook_print( 'Your Message', sub
     {
         my ( $nick, $what, $mode ) = @{ $_[0] };
+
         my $network = get_info( 'network' );
 
-        #Do nothing unless there is a network is in the network list
+        # Do nothing unless there is a network is in the network list
         return EAT_NONE unless $network;
 
-        #Only continue if the channel message is from one of the wanted networks
+        # Only continue if the channel message is from one of the wanted networks
         if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
         {
             my %nnr = %{ listGet() };
 
-            #If the NICK has not been pushed into the list then
-            #it needs to be done and hopefully before the emit.
+            # If the NICK has not been pushed into the list then
+            # it needs to be done and hopefully before the emit.
             if ( not exists $nnr{ $network }->{ $nick } )
             {
                 whoGet( $network, $nick );
@@ -476,12 +473,8 @@ hook_print( 'Your Message',
             {
                 my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
                 emit_print( 'Your Message', $realname, $what, $mode );
-
-                # This is not always populated by XChat
-                # user_info( $nick )->{realname}
                 return EAT_XCHAT;
             }
-            
         }
         return EAT_NONE;
     }
@@ -490,35 +483,33 @@ hook_print( 'Your Message',
 sub whoGet
 {
 
-    #Handle channel and nick who's here
-    #$channel can be either a channel or nick
+    # Handle channel and nick who's here
+    # $channel can be either a channel or nick
     my ( $network, $channel ) = @_;
 
-    if ( $network and $channel ) {    #Make sure...
-
-        command( 'WHO ' . $channel );    #Wasn't needed before
+    if ( $network and $channel ) #Make sure...
+    {
+        command( 'WHO ' . $channel ); # Wasn't needed before
 
         my $hooked_who;
-        $hooked_who = hook_server( '352',
-            sub
+        $hooked_who = hook_server( '352', sub
             {
                 #$_[0][3]  -- CHANNEL
                 #$_[0][7]  -- NICK
                 #$_[1][10] -- REALNAME
                 if ( lc( $_[0][3] ) eq lc( $channel )
-                     or lc( $_[0][7] ) eq lc( $channel ) )
+                     or lc( $_[0][7] ) eq lc( $channel )
+                   )
                 {
                     listPush( $network, $_[0][7], $_[1][10] )
                 }
-
                 return EAT_XCHAT;
             }
         );
 
-        #At the end of the /who unhook each numeric event
+        # At the end of the /who unhook each numeric event
         my $who_end;
-        $who_end = hook_server( '315',
-            sub
+        $who_end = hook_server( '315', sub
             {
                 unhook($hooked_who);
                 unhook($who_end);
@@ -526,9 +517,9 @@ sub whoGet
             }
         );
     }
-
 }
 
+# This should really use hook_fd;
 sub usrip
 {
     my ( $network ) = @_;
@@ -538,45 +529,44 @@ sub usrip
     my $port;
 
     # Get the host and port from the network list
-    for my $listNetworks ( get_list( 'networks' ) ) {
-        if ( lc($network) eq lc( $listNetworks->{network} ) )
+    for my $listNetworks ( get_list( 'networks' ) )
+    {
+        if ( lc($network) eq lc( $listNetworks->{ network } ) )
         {
-            $host = @{ $listNetworks->{servers} }[0]->{host};
-            $port = @{ $listNetworks->{servers} }[0]->{port};
+            $host = @{ $listNetworks->{servers} }[0]->{ host };
+            $port = @{ $listNetworks->{servers} }[0]->{ port };
         }
     }
 
-    #Create the socket
+    # Create the socket
     my $socket = new IO::Socket::INET(
         PeerAddr => $host,
         PeerPort => $port,
         Proto    => 'tcp',
         Blocking => 0,
-        Timeout  => 1
+        Timeout  => 1   # This is needed. Why????
     );
 
     while ( my $line = <$socket> )
     {
         $socket->send( "USRIP\n" );
-
         if ( $line =~ /:.+\s+302\s+:unknown=\+unknown\@(.+)/ )
         {
             $ip = $1;
-            $socket->close();    # close the connection
-            last;                # Got what we came for so GTFO of here!
+            $socket->close(); # close the connection
+            last;             # Got what we came for so GTFO of here!
         }
-
     }
-
     return $ip;
 }
 
-hook_command( 'iptonick',
-    sub
+hook_command( 'iptonick', sub
     {
         my $ip = $_[0][1];
-        my $regexIP =qr/^(?:(?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2})[.](?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2})[.]
-                         (?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2})[.](?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2}))$/x;
+        my $regexIP = qr/^(?:(?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2})[.]
+                             (?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2})[.]
+                             (?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2})[.]
+                             (?:25[0-5]|2[0-4][\d]|[0-1]?[\d]{1,2}))$/x;
 
         if ( $ip =~ $regexIP )
         {
@@ -586,47 +576,50 @@ hook_command( 'iptonick',
         {
             prnt 'Please enter a valid IP address.';
         }
-
         return EAT_XCHAT;
     },
     {
-        help_text => 'Convert a 32 byte IP to a valid 4x4 Evolution NICK'
+        help_text => 'Convert a 32 bit IP to a valid 4x4 Evolution NICK'
     }
 );
 
-#Command to see what is in the hash
-hook_command( 'showme',
-    sub
+hook_command( 'nicktoip', sub
     {
-        my $name = $_[0][1];
-        my %nnr = %{ listGet() };
+        my $nick = $_[0][1];
 
-        for my $nick ( keys $nnr{ $name } )
+        if ( $nick  =~ /[A-P]{12}/ )
         {
-
-            prnt $nick . ' = ' . $nnr{ $name }->{ $nick };
+            prnt nickToIP( $nick );
         }
-
+        else
+        {
+            prnt 'Please enter a valid 4x4 EvoR nick';
+        }
         return EAT_XCHAT;
     },
     {
-        help_text => 'Display the NICK and REALNAMES in the hash'
+        help_text => 'Convert a 4x4 EvoR nick to 32 bit IP address'
     }
 );
+
+sub nickToIP
+{
+    my $nick = $_[0];
+    $nick =~ tr/A-P/0-9A-F/;
+    return sprintf( "%vd:%d", unpack "A4n", pack "H*", $nick );
+}
 
 sub ipToNick
 {
     if ( $_[0] )
     {
-
-        my $ip = unpack "H8", pack "C4n", split /[.:]/, $_[0];
+        my $ip = unpack "H8", pack "C4n", split /\./, $_[0];
         $ip    =~ tr/0-9a-f/A-P/;
 
-        my $port = unpack "H4", pack "S4n", int( rand(65534) );
+        my $port = unpack "H4", pack "S4n", int( rand( 65534 ) );
         $port    =~ tr/0-9a-f/A-P/;
 
         return join '', $ip, $port;
-
     }
 }
 
@@ -637,19 +630,11 @@ register(
 );
 
 
-4
-
 __END__
 
 ##########################################################################
 ##########################################################################
-# FIX ME
-# A Client sends an RCHG and ^STATUS message when it joins with its realname
-# Need to wait until those are done ( since they populate the hash )
-# and THEN emit the new JOIN hook
-#
-# Until then this is pointless...
-#
+
 # UPDATE
 # So I did some thinking and came up with what you are about to see
 # Here is how it works
@@ -673,33 +658,39 @@ THIS IS WORKING CODE!
 
 my $hookJoin; # Global :-(
 $hookJoin =
-hook_print( 'Join', sub {
-	my ( $nick, $channel, $host ) = @{ $_[0] };
+hook_print( 'Join', sub
+    {
+        my ( $nick, $channel, $host ) = @{ $_[0] };
 
-	my $network = get_info('network');
+        my $network = get_info('network');
 
-	if ( grep { lc( $_ ) eq lc( $network ) } @netNames ) {
+        if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
+        {
 
-		my $hookPRIVMSG;
-		$hookPRIVMSG = hook_server('PRIVMSG', sub{
-			# Host    $_[0][0];
-			# Event   $_[0][1];
-			# Channel $_[0][2];
-			# Message $_[1][3];
-			if (
-					lc($_[0][2]) eq lc($channel)    and
-					$_[1][3] =~ m/^:\^STATUS\s(.+)/ and
-					exists $nnr{ $network }->{ $nick }
-				)
-				{
-					my $realname = ( split( /\^0|\^1/, $1 ) )[0];
-					emit_print( 'Join', $realname, $channel, $host );
-				}
-			unhook($hookPRIVMSG);
-		});
-		unhook($hookJoin);
-		return EAT_XCHAT;
-	}
-	return EAT_NONE;#});
-############################################################################
-##########################################################################
+            my $hookPRIVMSG;
+            $hookPRIVMSG =
+            hook_server('PRIVMSG', sub
+                {
+                    # Host    $_[0][0];
+                    # Event   $_[0][1];
+                    # Channel $_[0][2];
+                    # Message $_[1][3];
+                    if ( lc( $_[0][2] ) eq lc( $channel )
+                         and $_[1][3] =~ m/^:\^STATUS\s(.+)/
+                         and exists $nnr{ $network }->{ $nick }
+                       )
+                    {
+                        my $realname = ( split( /\^0|\^1/, $1 ) )[0];
+                        emit_print( 'Join', $realname, $channel, $host );
+                    }
+                    unhook($hookPRIVMSG);
+                }
+            );
+            
+            unhook($hookJoin);
+            return EAT_XCHAT;
+        }
+	return EAT_NONE;
+    }
+);
+
