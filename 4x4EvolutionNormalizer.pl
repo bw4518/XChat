@@ -23,6 +23,8 @@
 
 use strict;
 use warnings;
+
+use EvoTool;
 use IO::Socket;
 use Xchat qw( :all );
 
@@ -181,6 +183,8 @@ sub eventChannelMessage
         }
         elsif ( exists $nnr{ $network }->{ $nick } )
         {
+            my $d = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[-1];
+            prnt $d;
             my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
             emit_print( $event, $realname, $what, $mode );
             return EAT_XCHAT;
@@ -337,7 +341,7 @@ hook_print( 'Close_Context', sub
                  and grep { lc( $_ ) eq lc( $network ) } @netNames
                )
             {
-                delete $nnr{ $network };
+                listDeleteNet( $network );
             }
             return EAT_NONE;
         }
@@ -374,7 +378,7 @@ hook_print( 'Part', sub
             {
                 my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
                 emit_print( 'Part', $realname, $host, $channel );
-                delete $nnr{ $network }->{ $nick };
+                listDeleteUser( $network, $nick );
                 return EAT_XCHAT;
             }
         }
@@ -395,7 +399,7 @@ hook_print( 'Quit', sub
             {
                 my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
                 emit_print( 'Quit', $realname, $reason, $host );
-                delete $nnr{ $network }->{ $nick };
+                listDeleteUser( $network, $nick );
                 return EAT_XCHAT;
             }
         }
@@ -531,7 +535,7 @@ sub usrip
     # Get the host and port from the network list
     for my $listNetworks ( get_list( 'networks' ) )
     {
-        if ( lc($network) eq lc( $listNetworks->{ network } ) )
+        if ( lc( $network ) eq lc( $listNetworks->{ network } ) )
         {
             $host = @{ $listNetworks->{servers} }[0]->{ host };
             $port = @{ $listNetworks->{servers} }[0]->{ port };
@@ -589,7 +593,7 @@ hook_command( 'nicktoip', sub
 
         if ( $nick  =~ /[A-P]{12}/ )
         {
-            prnt nickToIP( $nick );
+            prnt nickToIPP( $nick );
         }
         else
         {
@@ -602,11 +606,40 @@ hook_command( 'nicktoip', sub
     }
 );
 
+hook_command( 'evogen', sub
+    {
+        my $nick = $_[0][1];
+        my $longIP = longIP( $_[0][2] );
+        
+        my $password  = EvoTool::Evo1Password( $nick, $longIP );
+        my $pwdVerify = EvoTool::verifyPasswordEvo1( $nick, $longIP, $password );
+        if ( $pwdVerify )
+        {
+            prnt $password;
+        }
+        return EAT_XCHAT;
+    },
+    {
+        help_text => 'Convert a 4x4 EvoR nick to 32 bit IP address'
+    }
+);
+
+sub longIP {
+   return unpack 'N!', pack 'C4', split /\./, shift;
+}
+
 sub nickToIP
 {
     my $nick = $_[0];
     $nick =~ tr/A-P/0-9A-F/;
-    return sprintf( "%vd:%d", unpack "A4n", pack "H*", $nick );
+    return sprintf( "%vd", unpack "A4n", pack "H*", $nick );
+}
+
+sub nickToIPP
+{
+    my $nick = $_[0];
+    $nick =~ tr/A-P/0-9A-F/;
+    return sprintf( "%vd:d", unpack "A4n", pack "H*", $nick );
 }
 
 sub ipToNick
@@ -628,7 +661,6 @@ register(
     0x3DFB3F,
     'Replace NICKS in the Text Events with realnames to mimic 4x4 Evolution'
 );
-
 
 __END__
 
