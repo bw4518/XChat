@@ -6,14 +6,18 @@ use Xchat qw( :all );
 
 sub youJoin
 {
-    my $topic;
-    $topic = hook_print( 'Topic',
-        sub{ unhook( $topic ); return EAT_XCHAT; }
-    );
-    
-    hook_print( 'Topic Creation',
-        sub{ return EAT_XCHAT; }
-    );
+    my $hook;
+    for my $event ( 'Topic', 'Topic Creation' )
+    {
+        $hook = hook_print( $event, \&topic, { 'data' => $hook } );
+    }
+}
+
+sub topic
+{
+    my ( $data, undef ) = @_;
+    unhook( $data );
+    return EAT_XCHAT;
 }
 
 hook_print( 'You Join', \&youJoin );
