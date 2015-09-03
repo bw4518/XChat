@@ -5,14 +5,6 @@
 #################################################################
 #
 #########################################################################################
-# NOTE: XChat has no built in method to change the info in the network list
-#       A Hexchat developer wants too, so maybe one day. For now this is all we can do
-#
-#       Interacting with GTK and the network list might be possible
-#       ( You're a god amongst men if you can figure that out )
-#########################################################################################
-#
-#########################################################################################
 # Shit that needs accomplished
 #      2: Handle misc events that I forgot or overlooked
 #      3: Fix any mistakes I have made
@@ -183,8 +175,6 @@ sub eventChannelMessage
         }
         elsif ( exists $nnr{ $network }->{ $nick } )
         {
-            my $d = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[-1];
-            prnt $d;
             my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
             emit_print( $event, $realname, $what, $mode );
             return EAT_XCHAT;
@@ -308,7 +298,7 @@ hook_server( 'RCHG', sub
                 my $nameOld = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
 
                 #Them
-                if ( lc( $nameNew ) ne lc( $nameOld ) and $me->{ nick } eq $nick )
+                if ( lc( $nameNew ) ne lc( $nameOld ) and $me->{ nick } ne $nick )
                 {
                     $nnr{ $network }->{ $nick } = $nameNew;
                     emit_print( 'Change Nick', $nameOld, $nameNew );
@@ -329,7 +319,7 @@ hook_server( 'RCHG', sub
 #Delete a network from the hash when a Server context is closed
 hook_print( 'Close_Context', sub
     {
-        my $network = context_info->{network};
+        my $network = context_info->{ network };
         
         if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
         {
@@ -343,8 +333,8 @@ hook_print( 'Close_Context', sub
             {
                 listDeleteNet( $network );
             }
-            return EAT_NONE;
         }
+        return EAT_NONE;
     }
 );
 
@@ -431,7 +421,7 @@ hook_print( 'You Join', sub
             my $namesEnd;
             $namesEnd = hook_server( '366', sub
                 {
-                    if ( lc( $_[0][3] ) eq lc($channel) )
+                    if ( lc( $_[0][3] ) eq lc( $channel ) )
                     {
 
                         # We will who the channel in a little bit and add our realname
@@ -459,7 +449,7 @@ hook_print( 'Your Message', sub
 
         my $network = get_info( 'network' );
 
-        # Do nothing unless there is a network is in the network list
+        # Do nothing unless there is a network in the network list
         return EAT_NONE unless $network;
 
         # Only continue if the channel message is from one of the wanted networks
@@ -477,6 +467,36 @@ hook_print( 'Your Message', sub
             {
                 my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
                 emit_print( 'Your Message', $realname, $what, $mode );
+                return EAT_XCHAT;
+            }
+        }
+        return EAT_NONE;
+    }
+);
+
+
+hook_print( 'Channel Notice', sub
+    {
+        my ( $nick, $channel, $what ) = @{ $_[0] };
+
+        my $network = get_info( 'network' );
+
+        # Do nothing unless there is a network in the network list
+        return EAT_NONE unless $network;
+
+        # Only continue if the channel message is from one of the wanted networks
+        if ( grep { lc( $_ ) eq lc( $network ) } @netNames )
+        {
+            my %nnr = %{ listGet() };
+
+            if ( not exists $nnr{ $network }->{ $nick } )
+            {
+                whoGet( $network, $nick );
+            }
+            elsif ( exists $nnr{ $network }->{ $nick } )
+            {
+                my $realname = ( split( /\^0|\^1/, $nnr{ $network }->{ $nick } ) )[0];
+                emit_print( 'Channel Notice', $realname, $channel, $what );
                 return EAT_XCHAT;
             }
         }
@@ -533,12 +553,12 @@ sub usrip
     my $port;
 
     # Get the host and port from the network list
-    for my $listNetworks ( get_list( 'networks' ) )
+    for my $nets ( get_list( 'networks' ) )
     {
-        if ( lc( $network ) eq lc( $listNetworks->{ network } ) )
+        if ( lc( $network ) eq lc( $nets->{ network } ) )
         {
-            $host = @{ $listNetworks->{servers} }[0]->{ host };
-            $port = @{ $listNetworks->{servers} }[0]->{ port };
+            $host = @{ $nets->{servers} }[0]->{ host };
+            $port = @{ $nets->{servers} }[0]->{ port };
         }
     }
 
@@ -583,7 +603,7 @@ hook_command( 'iptonick', sub
         return EAT_XCHAT;
     },
     {
-        help_text => 'Convert a 32 bit IP to a valid 4x4 Evolution NICK'
+        help_text => 'Convert a 32 bit IP to a valid 4x4 EvoR NICK'
     }
 );
 
@@ -593,7 +613,7 @@ hook_command( 'nicktoip', sub
 
         if ( $nick  =~ /[A-P]{12}/ )
         {
-            prnt nickToIPP( $nick );
+            prnt nickToIPPort( $nick );
         }
         else
         {
@@ -620,7 +640,7 @@ hook_command( 'evogen', sub
         return EAT_XCHAT;
     },
     {
-        help_text => 'Convert a 4x4 EvoR nick to 32 bit IP address'
+        help_text => 'Convert a 4x4 EvoR password generator'
     }
 );
 
@@ -635,7 +655,7 @@ sub nickToIP
     return sprintf( "%vd", unpack "A4n", pack "H*", $nick );
 }
 
-sub nickToIPP
+sub nickToIPPort
 {
     my $nick = $_[0];
     $nick =~ tr/A-P/0-9A-F/;
@@ -649,10 +669,11 @@ sub ipToNick
         my $ip = unpack "H8", pack "C4n", split /\./, $_[0];
         $ip    =~ tr/0-9a-f/A-P/;
 
-        my $port = unpack "H4", pack "S4n", int( rand( 65534 ) );
+        # 65535 - 49152 = 16383
+        my $port = unpack "H4", pack "S4n", int( rand( 16383 ) ) + 49152;
         $port    =~ tr/0-9a-f/A-P/;
 
-        return join '', $ip, $port;
+        return $ip . $port;
     }
 }
 
