@@ -8,12 +8,12 @@ use Xchat qw( :all );
 sub gotoall
 {
     my $context = get_info( 'context' );
-	for my $var ( get_list( 'channels' ) )
-	{
-		command( "GUI COLOR 0", $var->{channel}, $var->{network} );
-	}
-	set_context $context;
-	return EAT_XCHAT;
+    for my $var ( get_list( 'channels' ) )
+    {
+        command( "GUI COLOR 0", $var->{channel}, $var->{network} );
+    }
+    set_context $context;
+    return EAT_XCHAT;
 }
 
 hook_command( 'GTA', \&gotoall );
