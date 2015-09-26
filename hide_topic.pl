@@ -1,8 +1,14 @@
-# Hide the topic when you join a channel
-
 use strict;
 use warnings;
 use Xchat qw( :all );
+
+register(
+    'Hide the topic',
+    0x1,
+    'Hide the topic when you join a channel'
+);
+
+hook_print( 'You Join', \&youJoin );
 
 sub youJoin
 {
@@ -15,9 +21,8 @@ sub youJoin
 
 sub topic
 {
-    my ( $data, undef ) = @_;
+#    my ( $data, undef ) = @_;
+    my $data = $_[0];
     unhook( $data );
     return EAT_XCHAT;
 }
-
-hook_print( 'You Join', \&youJoin );
