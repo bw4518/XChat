@@ -7,9 +7,9 @@ use Xchat qw( :all );
 
 
 register(
-	'Number of users',
-	0x1,
-	'Add the number of users to the channel switcher',
+    'Number of users',
+    0x1,
+    'Add the number of users to the channel switcher'
 );
 
 
