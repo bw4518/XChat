@@ -1,28 +1,36 @@
+# Author: culb ( A.K.A nightfrog )
+# Hide the topic, channel url, and ChanServ notice when you join a channel
+
 use strict;
 use warnings;
 use Xchat qw( :all );
 
-register(
-    'Hide the topic',
-    0x1,
-    'Hide the topic when you join a channel'
-);
 
-hook_print( 'You Join', \&youJoin );
+hook_print( 'Notice', \&notice );
+hook_print( 'You Join', \&you_join );
 
-sub youJoin
+
+sub notice
 {
-    my $hook;
-    for my $event ( 'Topic', 'Topic Creation' )
+    my ( $who, $message ) = @{$_[0]};
+
+    if ( $who eq 'ChanServ' and $message =~ m/^\[#\w+\] Welcome to/ )
     {
-        $hook = hook_print( $event, \&topic, { 'data' => $hook } );
+        return EAT_XCHAT;
     }
 }
 
-sub topic
+sub you_join
 {
-#    my ( $data, undef ) = @_;
-    my $data = $_[0];
-    unhook( $data );
-    return EAT_XCHAT;
+    for my $event ( 'Channel Url', 'Topic', 'Topic Creation' )
+    {
+        hook_print( $event, sub{ return EAT_XCHAT; } );
+    }
 }
+
+
+register(
+    'Hide the topic',
+    0x2,
+    'Hide the topic when you join a channel'
+);
