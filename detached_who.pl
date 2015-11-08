@@ -55,12 +55,9 @@ hook_command( 'DEWHO',
                 $hooked_who = hook_server( '352',
                     sub
                     {
-                        #Remove the leading : from the hops
-                        my $string = $_[0][9];
-                        $string =~ s/^://;
-
                         push @{ $slist->{data} }, [ $network, $_[0][3], $_[0][4], $_[0][5],
-                                                    $_[0][6], $_[0][7], $_[0][8], $string , $_[1][10] ];
+                                                  $_[0][6], $_[0][7], $_[0][8], $_[0][9], $_[1][10] ];
+                        return EAT_XCHAT;
                     });
 
                 my $who_end;
@@ -69,6 +66,7 @@ hook_command( 'DEWHO',
                     {
                         unhook( $hooked_who );
                         unhook( $who_end );
+                        return EAT_XCHAT;
                     });
             }
 
