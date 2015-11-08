@@ -36,7 +36,7 @@ hook_command( 'DEWHO',
             $window->set_default_size( 500, 250 );
 
             my $hbox = Gtk2::HBox->new;
-            $window->add ( $hbox );
+            $window->add( $hbox );
 
             my $slist = Gtk2::SimpleList->new ( 'Network'   => 'text',
                                                 'Channel'   => 'text',
