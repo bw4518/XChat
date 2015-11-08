@@ -1,5 +1,5 @@
 # Author: culb ( A.K.A nightfrog )
-#Show the output of /WHO in a separate window
+#Create a command 'DEWHO' to show the output of /WHO in a separate window
 
 use strict;
 use warnings;
@@ -7,7 +7,8 @@ use Gtk2 -init;
 use Gtk2::SimpleList;
 use Xchat qw( :all );
 
-my $window;
+
+#Keep a record of windows to destroy
 my @record;
 
 
@@ -26,7 +27,6 @@ use constant FALSE => 0;
 hook_command( 'DEWHO',
     sub
     {
-
         #Channels or dialogs
         if( context_info->{type} == 2 or context_info->{type} == 3 )
         {
@@ -47,12 +47,12 @@ hook_command( 'DEWHO',
                                                 'HOPS'      => 'text',
                                                 'Real name' => 'text' );
 
-            if ( my $network = get_info 'network' and my $channel = get_info 'channel' )
+            if( my $network = get_info 'network' and my $channel = get_info 'channel' )
             {
                 command( 'QUOTE WHO ' . $channel );
 
-                my $hooked_who;
-                $hooked_who = hook_server( '352',
+                my $hook_who;
+                $hook_who = hook_server( '352',
                     sub
                     {
                         #Remove the leading : from the hops
@@ -60,15 +60,15 @@ hook_command( 'DEWHO',
                         $string =~ s/^://;
 
                         push @{ $slist->{data} }, [ $network, $_[0][3], $_[0][4], $_[0][5],
-                                                    $_[0][6], $_[0][7], $_[0][8], $string , $_[1][10] ];
+                                                  $_[0][6], $_[0][7], $_[0][8], $string , $_[1][10] ];
                     });
 
-                my $who_end;
-                $who_end = hook_server( '315',
+                my $hook_who_end;
+                $hook_who_end = hook_server( '315',
                     sub
                     {
-                        unhook( $hooked_who );
-                        unhook( $who_end );
+                        unhook $hook_who;
+                        unhook $hook_who_end;
                     });
             }
 
@@ -77,19 +77,19 @@ hook_command( 'DEWHO',
 
 
             #Editable fields for copying information
-            $slist->set_column_editable ( $_, TRUE ) for 0..8;
+            $slist->set_column_editable( $_, TRUE ) for 0..8;
 
             #Reorder rows
-            $slist->set_reorderable ( TRUE );
+            $slist->set_reorderable( TRUE );
 
             #Resize columns
-            map { $_->set_resizable ( TRUE ) } $slist->get_columns;
+            map { $_->set_resizable( TRUE ) } $slist->get_columns;
 
             #Scrollable window
             my $scrolled = Gtk2::ScrolledWindow->new;
-            $scrolled->set_policy ( 'automatic', 'automatic' );
-            $scrolled->add ( $slist );
-            $hbox->add ( $scrolled );
+            $scrolled->set_policy( 'automatic', 'automatic' );
+            $scrolled->ad( $slist );
+            $hbox->add( $scrolled );
 
             #Show the window
             $window->show_all;
@@ -99,7 +99,6 @@ hook_command( 'DEWHO',
         }
 
         return EAT_XCHAT;
-
     },
     {
         help_text => 'Create a detached window with the output of /WHO'
