@@ -65,7 +65,6 @@ sub color_tab
     {
         if( compare_hostmask( $list{$network}->{$channel}[$value], $userMask ) )
         {
-            prnt $list{$network}->{$channel}[$value];
             command 'gui color 0';
         }
     }
