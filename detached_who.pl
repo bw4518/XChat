@@ -72,10 +72,6 @@ hook_command 'DEWHO' => sub
                             };
         }
 
-
-
-
-
         #Editable fields for copying information
         $sList->set_column_editable( $_, TRUE ) for 0..8;
 
