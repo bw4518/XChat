@@ -54,14 +54,14 @@ hook_command 'DEWHO' => sub
 
             my $hookedWho;
             $hookedWho = hook_server '352' => sub
-                          {
-                              my $hops = $_[0][9];
-                              $hops =~ s/^://;
-                              push @{ $sList->{data} }, [ $network, $_[0][3], $_[0][4],
-                                                          $_[0][5], $_[0][6], $_[0][7],
-                                                          $_[0][8], $hops   , $_[1][10] ];
-                              return EAT_XCHAT;
-                          };
+                         {
+                             my $hops = $_[0][9];
+                             $hops =~ s/^://;
+                             push @{ $sList->{data} }, [ $network, $_[0][3], $_[0][4],
+                                                         $_[0][5], $_[0][6], $_[0][7],
+                                                         $_[0][8], $hops   , $_[1][10] ];
+                             return EAT_XCHAT;
+                         };
 
             my $hookedWhoEnd;
             $hookedWhoEnd = hook_server '315' => sub
