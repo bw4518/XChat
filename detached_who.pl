@@ -60,7 +60,7 @@ hook_command 'DEWHO' => sub
                              push @{ $sList->{data} }, [ $network, $_[0][3], $_[0][4],
                                                          $_[0][5], $_[0][6], $_[0][7],
                                                          $_[0][8], $hops   , $_[1][10] ];
-                             return EAT_XCHAT;
+                             return EAT_ALL;
                          };
 
             my $hookedWhoEnd;
@@ -68,7 +68,7 @@ hook_command 'DEWHO' => sub
                             {
                                 unhook $hookedWho;
                                 unhook $hookedWhoEnd;
-                                return EAT_XCHAT;
+                                return EAT_ALL;
                             };
         }
 
