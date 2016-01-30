@@ -33,7 +33,8 @@ hook_command 'DEWHO' => sub
     {
         my $window = Gtk2::Window->new;
         $window->set_title( 'Detached WHO' );
-        $window->set_default_size( 500, 300 );
+        #Width x Height
+        $window->set_default_size( 530, 250 );
 
         my $hBox = Gtk2::HBox->new;
         $window->add( $hBox );
@@ -60,6 +61,7 @@ hook_command 'DEWHO' => sub
                              push @{ $sList->{data} }, [ $network, $_[0][3], $_[0][4],
                                                          $_[0][5], $_[0][6], $_[0][7],
                                                          $_[0][8], $hops   , $_[1][10] ];
+                             #Only this script needed to know about this
                              return EAT_ALL;
                          };
 
@@ -68,6 +70,7 @@ hook_command 'DEWHO' => sub
                             {
                                 unhook $hookedWho;
                                 unhook $hookedWhoEnd;
+                                #Only this script needed to know about this
                                 return EAT_ALL;
                             };
         }
