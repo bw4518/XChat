@@ -35,8 +35,8 @@ hook_command 'DEWHO' => sub
         $window->set_title( 'Detached WHO' );
         $window->set_default_size( 500, 300 );
 
-        my $hbox = Gtk2::HBox->new;
-        $window->add( $hbox );
+        my $hBox = Gtk2::HBox->new;
+        $window->add( $hBox );
 
         my $sList = Gtk2::SimpleList->new( 'Network'   => 'text',
                                            'Channel'   => 'text',
@@ -85,7 +85,7 @@ hook_command 'DEWHO' => sub
         my $scrolled = Gtk2::ScrolledWindow->new;
         $scrolled->set_policy( 'automatic', 'automatic' );
         $scrolled->add( $sList );
-        $hbox->add( $scrolled );
+        $hBox->add( $scrolled );
 
         #Show the window
         $window->show_all;
