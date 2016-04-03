@@ -51,7 +51,7 @@ sub color_tab
     my $nick = $_[0][0];
 
     #Check if XChat has the users information
-    if( not user_info( $nick )->{host} )
+    if(not defined user_info( $nick ) or not user_info( $nick )->{host})
     {
         #Get the information for next time
         command 'QUOTE WHO ' . $channel;
